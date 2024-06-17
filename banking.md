@@ -171,7 +171,7 @@ select
 From
       Accounts
 WHERE
-      transaction_date BETWEEN '2022-01-30' AND '2022-02-10'
+   transaction_date BETWEEN '2022-01-30' AND '2022-02-10'
 GROUP BY
       account_id
 ```
@@ -189,35 +189,31 @@ ORDER BY transaction_id DESC;
 13. List customers with high aggregate account balances, along with their account types.
 
 ```sql
-SELECT
-    member_id,
-    account_type,
-    SUM(amount) AS total_balance
-FROM
-    TXN
-WHERE
-    created > TO_DATE('06/01/2019 00:00:00', 'MM/DD/YYYY HH24:MI:SS')
-GROUP BY
-    member_id,
-    account_type
+select
+      CONCAT(first_name,' ',last_name) as name,balance,account_type
+from
+     Customers
+join
+    Accounts on Customers.customer_id=Accounts.customer_id
+order by
+        balance desc;
 ```
 
 14. Identify and list duplicate transactions based on transaction amount, date, and account.
 
 ````sql
-SELECT
-    member_id,
-    TRUNC(created, 'DDD') AS date_group,
-    COUNT(*) AS count
-FROM
-    TXN
-WHERE
-    created > TO_DATE('06/01/2019 00:00:00', 'MM/DD/YYYY HH24:MI:SS')
-GROUP BY
-    member_id,
-    TRUNC(created, 'DDD')
-HAVING
-    COUNT(*) > 1;
+SELECT *
+FROM Transactions t1
+INNER JOIN (
+    SELECT amount, transaction_date, account_id
+    FROM Transactions
+    GROUP BY amount, transaction_date, account_id
+    HAVING COUNT(*) > 1
+) AS duplicates
+ON t1.amount = duplicates.amount
+   AND t1.transaction_date = duplicates.transaction_date
+   AND t1.account_id = duplicates.account_id
+ORDER BY t1.transaction_date, t1.account_id, t1.amount;
     ```
 
 
@@ -226,14 +222,17 @@ HAVING
 
 
 
-SELECT
-    account_type,
-    (SELECT SUM(amount) FROM TXN WHERE created > TO_DATE('06/01/2019 00:00:00', 'MM/DD/YYYY HH24:MI:SS') AND account_type = a.account_type) AS total_balance
-FROM
-    (
-    SELECT DISTINCT account_type
-    FROM TXN
-    WHERE created > TO_DATE('06/01/2019 00:00:00', 'MM/DD/YYYY HH24:MI:SS')
-    ) AS a;
+select
+      account_type,
+	  (select
+	           sum(balance)
+	    from
+		     Accounts as i
+		where
+		     i.account_type=o.account_type) as total_amount
+from
+     Accounts as o
+group by
+        account_type;
 
 ````
